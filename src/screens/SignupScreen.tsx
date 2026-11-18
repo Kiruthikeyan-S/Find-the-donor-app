@@ -41,7 +41,14 @@ export function SignupScreen({ navigation }: Props) {
     }
     setSubmitting(true);
     try {
-      await signUp(username, email, password);
+      const { needsEmailConfirmation } = await signUp(username, email, password);
+      if (needsEmailConfirmation) {
+        Alert.alert(
+          'Verify Your Email',
+          'Account created! Please check your email and click the confirmation link before logging in.'
+        );
+        navigation.navigate('Login');
+      }
     } catch (err: any) {
       Alert.alert('Sign Up Failed', err?.message ?? 'Could not create account.');
     } finally {

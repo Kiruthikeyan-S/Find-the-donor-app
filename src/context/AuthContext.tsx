@@ -20,7 +20,7 @@ interface AuthContextValue {
   loading: boolean;
   supabaseReady: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (username: string, email: string, password: string) => Promise<void>;
+  signUp: (username: string, email: string, password: string) => Promise<{ needsEmailConfirmation: boolean }>;
   signInWithOAuth: (provider: 'google' | 'apple') => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -133,13 +133,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: cleanEmail,
         role: 'client',
       });
-      setProfile({
-        id: data.user.id,
-        username: cleanUsername,
-        email: cleanEmail,
-        role: 'client',
-      });
+      if (data.session) {
+        setProfile({
+          id: data.user.id,
+          username: cleanUsername,
+          email: cleanEmail,
+          role: 'client',
+        });
+      }
     }
+    return { needsEmailConfirmation: !data.session };
   };
 
   const signInWithOAuth = async (provider: 'google' | 'apple') => {
@@ -147,7 +150,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Supabase is not configured. Add your .env credentials.');
     }
 
-    const redirectTo = Linking.createURL('auth/callback');
+    const redirectTo = Linking.createURL('auth/callback', {
+      scheme: 'findthedonor',
+    });
 
     if (Platform.OS === 'web') {
       const { error } = await supabase.auth.signInWithOAuth({
