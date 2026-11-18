@@ -4,7 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { ActivityIndicator, Platform, Text, View } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { AboutScreen } from './src/screens/AboutScreen';
 import { AdminScreen } from './src/screens/AdminScreen';
@@ -94,6 +94,27 @@ function RootNavigator() {
     );
   }
 
+  if (!supabaseReady) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 24,
+          backgroundColor: COLORS.bg,
+        }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: '800', color: COLORS.primary, marginBottom: 10 }}>
+          Configuration Error
+        </Text>
+        <Text style={{ fontSize: 14, color: COLORS.text, textAlign: 'center', lineHeight: 21 }}>
+          Supabase is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your .env file and restart Expo.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -106,7 +127,7 @@ function RootNavigator() {
           headerTitleStyle: { fontWeight: '700' },
         }}
       >
-        {user || !supabaseReady ? (
+        {user ? (
           <>
             <Stack.Screen
               name="MainTabs"

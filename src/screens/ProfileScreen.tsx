@@ -2,6 +2,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -35,7 +36,9 @@ export function ProfileScreen() {
           setDonations(res.donations);
           setRequests(res.requests);
         })
-        .catch(() => {})
+        .catch((err: any) => {
+          Alert.alert('Load Error', err?.message ?? 'Could not load your activity.');
+        })
         .finally(() => setLoading(false));
     }, [user])
   );

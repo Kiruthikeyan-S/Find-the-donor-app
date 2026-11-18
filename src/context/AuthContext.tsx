@@ -20,7 +20,11 @@ interface AuthContextValue {
   loading: boolean;
   supabaseReady: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (username: string, email: string, password: string) => Promise<{ needsEmailConfirmation: boolean }>;
+  signUp: (
+    username: string,
+    email: string,
+    password: string
+  ) => Promise<{ needsEmailConfirmation: boolean }>;
   signInWithOAuth: (provider: 'google' | 'apple') => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -69,40 +73,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!supabaseReady || !supabase) {
+      setUser(null);
+      setProfile(null);
       setLoading(false);
       return;
     }
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        setProfile(await loadProfile(currentUser));
-      } else {
+    let isMounted = true;
+
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (!isMounted) return;
+      if (error || !session?.user) {
+        setUser(null);
         setProfile(null);
+        setLoading(false);
+        return;
       }
+      setUser(session.user);
+      setProfile(await loadProfile(session.user));
       setLoading(false);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        setProfile(await loadProfile(currentUser));
-      } else {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        setUser(null);
         setProfile(null);
+        setLoading(false);
+        return;
       }
+      setUser(session.user);
+      setProfile(await loadProfile(session.user));
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [supabaseReady]);
 
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
-      throw new Error('Supabase is not configured. Add your .env credentials.');
+      throw new Error('Supabase is not configured. Check your environment variables.');
     }
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
@@ -113,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (username: string, email: string, password: string) => {
     if (!supabase) {
-      throw new Error('Supabase is not configured. Add your .env credentials.');
+      throw new Error('Supabase is not configured. Check your environment variables.');
     }
     const cleanUsername = username.trim();
     const cleanEmail = email.trim();
@@ -126,28 +141,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (error) throw error;
 
-    if (data.user) {
-      await supabase.from('profiles').upsert({
+    if (data.user && data.session) {
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         username: cleanUsername,
         email: cleanEmail,
         role: 'client',
       });
-      if (data.session) {
-        setProfile({
-          id: data.user.id,
-          username: cleanUsername,
-          email: cleanEmail,
-          role: 'client',
-        });
+      if (profileError) {
+        throw new Error(profileError.message || 'Account created, but profile setup failed.');
       }
+      setProfile({
+        id: data.user.id,
+        username: cleanUsername,
+        email: cleanEmail,
+        role: 'client',
+      });
     }
     return { needsEmailConfirmation: !data.session };
   };
 
   const signInWithOAuth = async (provider: 'google' | 'apple') => {
     if (!supabase) {
-      throw new Error('Supabase is not configured. Add your .env credentials.');
+      throw new Error('Supabase is not configured. Check your environment variables.');
     }
 
     const redirectTo = Linking.createURL('auth/callback', {
@@ -201,7 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     if (!supabase) {
-      throw new Error('Supabase is not configured. Add your .env credentials.');
+      throw new Error('Supabase is not configured. Check your environment variables.');
     }
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
     if (error) throw error;
@@ -209,7 +225,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     if (!supabase) return;
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+    if (error) throw error;
   };
 
   return (

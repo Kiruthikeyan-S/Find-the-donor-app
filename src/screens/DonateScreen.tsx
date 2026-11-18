@@ -17,6 +17,7 @@ import { BloodTypePicker } from '../components/BloodTypePicker';
 import { useAuth } from '../context/AuthContext';
 import { registerDonor } from '../services/bloodService';
 import { COLORS, GENDERS } from '../theme';
+import { validateDonationInput } from '../utils/validation';
 
 export function DonateScreen() {
   const { user, profile } = useAuth();
@@ -64,23 +65,25 @@ export function DonateScreen() {
   };
 
   const handleSubmit = async () => {
-    const parsedAge = parseInt(age, 10);
-    const parsedWeight = parseInt(weight, 10);
-
-    if (!name.trim() || !phone.trim() || !email.trim()) {
-      Alert.alert('Missing Fields', 'Please fill in your name, email, and phone number.');
-      return;
-    }
-    if (isNaN(parsedAge) || parsedAge < 18 || parsedAge > 65) {
-      Alert.alert('Eligibility Check', 'Donors must be between 18 and 65 years old.');
-      return;
-    }
-    if (isNaN(parsedWeight) || parsedWeight < 45) {
-      Alert.alert('Eligibility Check', 'Donors must weigh at least 45 kg.');
-      return;
-    }
+    if (submitting) return;
     if (!user) {
       Alert.alert('Sign In Required', 'Please log in to register as a donor.');
+      return;
+    }
+
+    const check = validateDonationInput({
+      name,
+      email,
+      phone,
+      blood_type: bloodType,
+      ageStr: age,
+      weightStr: weight,
+      latitude: coords?.latitude ?? null,
+      longitude: coords?.longitude ?? null,
+    });
+
+    if (!check.valid) {
+      Alert.alert('Validation Error', check.error);
       return;
     }
 
@@ -93,15 +96,15 @@ export function DonateScreen() {
         email: email.trim(),
         phone: phone.trim(),
         blood_type: bloodType,
-        age: parsedAge,
-        weight: parsedWeight,
+        age: check.age,
+        weight: check.weight,
         medical_conditions: medicalConditions.trim() || 'None',
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
       });
       Alert.alert(
         'Thank You for Registering! 🩸',
-        'Your donor profile has been saved to Red Line. Patients in need can now match with you.'
+        'Your donor profile has been saved. Note: age/weight checks are preliminary only and do not replace medical screening at a blood bank.'
       );
       setPhone('');
       setMedicalConditions('');

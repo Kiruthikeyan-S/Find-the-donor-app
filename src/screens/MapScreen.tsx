@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { DonorMap } from '../components/DonorMap';
-import { fetchAllDonors } from '../services/bloodService';
+import { fetchDonorMapMarkers } from '../services/bloodService';
 import { COLORS } from '../theme';
 import { DonorRecord } from '../utils/bloodCompatibility';
 
@@ -19,11 +19,16 @@ export function MapScreen() {
   const [donors, setDonors] = useState<DonorRecord[]>([]);
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const loadDonors = () => {
     setLoading(true);
-    fetchAllDonors()
+    setErrorMsg(null);
+    fetchDonorMapMarkers()
       .then(setDonors)
+      .catch((err: any) => {
+        setErrorMsg(err?.message ?? 'Could not load donor locations.');
+      })
       .finally(() => setLoading(false));
   };
 
@@ -71,6 +76,10 @@ export function MapScreen() {
 
       {loading ? (
         <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 24 }} />
+      ) : errorMsg ? (
+        <View style={styles.emptyCard}>
+          <Text style={[styles.emptyText, { color: COLORS.danger }]}>{errorMsg}</Text>
+        </View>
       ) : (
         <DonorMap donors={donors} userCoords={userCoords} />
       )}

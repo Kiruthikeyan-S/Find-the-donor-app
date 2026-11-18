@@ -1,7 +1,10 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../theme';
-import { BLOOD_COMPATIBILITY } from '../utils/bloodCompatibility';
+import {
+  BLOOD_COMPATIBILITY,
+  MEDICAL_MATCHING_DISCLAIMER,
+} from '../utils/bloodCompatibility';
 
 export function AboutScreen() {
   return (
@@ -23,6 +26,9 @@ export function AboutScreen() {
 
       <View style={styles.card}>
         <Text style={styles.title}>Blood Type Compatibility</Text>
+        <Text style={[styles.body, { color: COLORS.primaryDark, fontWeight: '600' }]}>
+          {MEDICAL_MATCHING_DISCLAIMER}
+        </Text>
         {Object.entries(BLOOD_COMPATIBILITY).map(([recipient, donors]) => (
           <View key={recipient} style={styles.compatRow}>
             <View style={styles.badge}>

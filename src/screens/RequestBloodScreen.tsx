@@ -16,9 +16,9 @@ import {
 } from 'react-native';
 import { BloodTypePicker } from '../components/BloodTypePicker';
 import { useAuth } from '../context/AuthContext';
-import { fetchAllDonors, submitBloodRequest } from '../services/bloodService';
+import { matchCompatibleDonors, submitBloodRequest } from '../services/bloodService';
 import { COLORS, GENDERS } from '../theme';
-import { matchAndSortDonors } from '../utils/bloodCompatibility';
+import { validateBloodRequestInput } from '../utils/validation';
 
 export function RequestBloodScreen() {
   const navigation = useNavigation<any>();
@@ -65,31 +65,43 @@ export function RequestBloodScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim() || !phone.trim() || !address.trim()) {
-      Alert.alert('Missing Fields', 'Please enter patient/requester name, phone, and hospital/address.');
+    if (submitting) return;
+    if (!user) {
+      Alert.alert('Sign In Required', 'Please log in to submit a blood request.');
+      return;
+    }
+
+    const check = validateBloodRequestInput({
+      name,
+      email,
+      phone,
+      blood_type: bloodType,
+      address,
+      latitude: coords?.latitude ?? null,
+      longitude: coords?.longitude ?? null,
+    });
+
+    if (!check.valid) {
+      Alert.alert('Validation Error', check.error);
       return;
     }
 
     setSubmitting(true);
     try {
-      if (user) {
-        await submitBloodRequest({
-          userId: user.id,
-          name: name.trim(),
-          gender,
-          email: email.trim(),
-          phone: phone.trim(),
-          blood_type: bloodType,
-          address: address.trim(),
-          id_proof_uri: idProofUri,
-          latitude: coords?.latitude ?? null,
-          longitude: coords?.longitude ?? null,
-        });
-      }
+      await submitBloodRequest({
+        userId: user.id,
+        name: name.trim(),
+        gender,
+        email: email.trim(),
+        phone: phone.trim(),
+        blood_type: bloodType,
+        address: address.trim(),
+        hasLocalAttachment: Boolean(idProofUri),
+        latitude: coords?.latitude ?? null,
+        longitude: coords?.longitude ?? null,
+      });
 
-      const allDonors = await fetchAllDonors();
-      const matched = matchAndSortDonors(
-        allDonors,
+      const matched = await matchCompatibleDonors(
         bloodType,
         coords?.latitude ?? null,
         coords?.longitude ?? null

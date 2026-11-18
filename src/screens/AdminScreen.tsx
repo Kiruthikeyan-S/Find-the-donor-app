@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 import {
   BloodRequestDoc,
   DonationDoc,
@@ -18,11 +19,17 @@ import {
 import { COLORS } from '../theme';
 
 export function AdminScreen() {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
   const [donations, setDonations] = useState<DonationDoc[]>([]);
   const [requests, setRequests] = useState<BloodRequestDoc[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [d, r] = await Promise.all([
@@ -40,12 +47,27 @@ export function AdminScreen() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [isAdmin]);
 
   const handleFulfill = async (id: string) => {
-    await updateRequestStatus(id, 'fulfilled');
-    loadData();
+    try {
+      await updateRequestStatus(id, 'fulfilled');
+      await loadData();
+    } catch (err: any) {
+      Alert.alert('Update Failed', err?.message ?? 'Could not update request status.');
+    }
   };
+
+  if (!isAdmin) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.deniedTitle}>Access Denied</Text>
+        <Text style={styles.deniedText}>
+          Verified administrator privileges are required to view this screen.
+        </Text>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -95,7 +117,9 @@ export function AdminScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   content: { padding: 16, paddingBottom: 32 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  deniedTitle: { fontSize: 20, fontWeight: '800', color: COLORS.danger, marginBottom: 8 },
+  deniedText: { fontSize: 14, color: COLORS.textLight, textAlign: 'center' },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '800',

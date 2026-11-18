@@ -9,7 +9,10 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { COLORS } from '../theme';
-import { DonorRecord } from '../utils/bloodCompatibility';
+import {
+  DonorRecord,
+  MEDICAL_MATCHING_DISCLAIMER,
+} from '../utils/bloodCompatibility';
 
 type Props = NativeStackScreenProps<any, 'MatchingDonors'>;
 
@@ -34,6 +37,10 @@ export function MatchingDonorsScreen({ route }: Props) {
           Found {donors.length} compatible donor{donors.length === 1 ? '' : 's'}{' '}
           (sorted nearest first when GPS is available)
         </Text>
+      </View>
+
+      <View style={styles.disclaimerBox}>
+        <Text style={styles.disclaimerText}>{MEDICAL_MATCHING_DISCLAIMER}</Text>
       </View>
 
       <FlatList
@@ -97,6 +104,19 @@ const styles = StyleSheet.create({
   },
   bannerTitle: { color: COLORS.white, fontSize: 18, fontWeight: '800' },
   bannerSub: { color: COLORS.primaryLight, fontSize: 13, marginTop: 4 },
+  disclaimerBox: {
+    backgroundColor: COLORS.warningLight,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  disclaimerText: {
+    fontSize: 12,
+    color: '#92400e',
+    lineHeight: 17,
+    fontWeight: '600',
+  },
   list: { padding: 16, gap: 12 },
   card: {
     backgroundColor: COLORS.white,

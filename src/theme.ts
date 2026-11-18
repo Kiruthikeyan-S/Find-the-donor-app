@@ -17,15 +17,14 @@ export const COLORS = {
 } as const;
 
 export const BLOOD_TYPES = [
-  'A+',
-  'A-',
-  'B+',
-  'B-',
-  'AB+',
-  'AB-',
-  'O+',
   'O-',
-  'A1B+',
+  'O+',
+  'A-',
+  'A+',
+  'B-',
+  'B+',
+  'AB-',
+  'AB+',
 ] as const;
 
 export type BloodType = (typeof BLOOD_TYPES)[number];
