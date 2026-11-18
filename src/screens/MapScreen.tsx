@@ -11,23 +11,24 @@ import {
   View,
 } from 'react-native';
 import { DonorMap } from '../components/DonorMap';
-import { MEDICAL_FACILITIES } from '../data/facilities';
 import { fetchAllDonors } from '../services/bloodService';
 import { COLORS } from '../theme';
 import { DonorRecord } from '../utils/bloodCompatibility';
 
-type FilterType = 'all' | 'donor' | 'bank' | 'hospital';
-
 export function MapScreen() {
   const [donors, setDonors] = useState<DonorRecord[]>([]);
-  const [filter, setFilter] = useState<FilterType>('all');
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadDonors = () => {
+    setLoading(true);
     fetchAllDonors()
       .then(setDonors)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadDonors();
   }, []);
 
   const locateMe = async () => {
@@ -52,80 +53,63 @@ export function MapScreen() {
     Linking.openURL(url);
   };
 
-  const visibleFacilities = MEDICAL_FACILITIES.filter(
-    (f) => filter === 'all' || f.type === filter
-  );
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>📍 Real-Time Donors & Blood Banks</Text>
+      <Text style={styles.title}>📍 Live Donors Map</Text>
       <Text style={styles.subtitle}>
-        Explore registered donors, blood banks, and emergency hospitals.
+        View registered donors from your Supabase database.
       </Text>
 
       <View style={styles.controls}>
         <TouchableOpacity style={styles.locateBtn} onPress={locateMe}>
           <Text style={styles.locateBtnText}>🎯 My Location</Text>
         </TouchableOpacity>
-        {(['all', 'donor', 'bank', 'hospital'] as FilterType[]).map((f) => (
-          <TouchableOpacity
-            key={f}
-            style={[styles.filterPill, filter === f && styles.filterPillActive]}
-            onPress={() => setFilter(f)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                filter === f && styles.filterTextActive,
-              ]}
-            >
-              {f === 'all'
-                ? 'All'
-                : f === 'donor'
-                ? '🩸 Donors'
-                : f === 'bank'
-                ? '🏥 Blood Banks'
-                : '🚑 Hospitals'}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <TouchableOpacity style={styles.refreshBtn} onPress={loadDonors}>
+          <Text style={styles.refreshBtnText}>↻ Refresh</Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
         <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 24 }} />
       ) : (
-        <DonorMap
-          donors={donors}
-          facilities={MEDICAL_FACILITIES}
-          filter={filter}
-          userCoords={userCoords}
-        />
+        <DonorMap donors={donors} userCoords={userCoords} />
       )}
 
-      <Text style={styles.sectionTitle}>Verified Medical Facilities</Text>
-      {visibleFacilities.map((fac) => (
-        <View key={fac.id} style={styles.card}>
-          <Text style={styles.cardTitle}>
-            {fac.type === 'bank' ? '🩸' : '🏥'} {fac.name}
+      <Text style={styles.sectionTitle}>Registered Donors ({donors.length})</Text>
+      {donors.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>
+            No donors registered yet. Donors added through the Donate tab will
+            appear here.
           </Text>
-          <Text style={styles.cardMeta}>{fac.address}</Text>
-          <Text style={styles.cardStock}>Stock: {fac.stockInfo}</Text>
-          <View style={styles.cardActions}>
-            <TouchableOpacity
-              style={styles.callBtn}
-              onPress={() => Linking.openURL(`tel:${fac.phone}`)}
-            >
-              <Text style={styles.callBtnText}>📞 Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.dirBtn}
-              onPress={() => openGoogleMaps(fac.latitude, fac.longitude, fac.name)}
-            >
-              <Text style={styles.dirBtnText}>🗺️ Directions</Text>
-            </TouchableOpacity>
-          </View>
         </View>
-      ))}
+      ) : (
+        donors.map((d) => (
+          <View key={d.id} style={styles.card}>
+            <Text style={styles.cardTitle}>
+              🩸 {d.blood_type} • {d.name}
+            </Text>
+            <View style={styles.cardActions}>
+              {Boolean(d.phone) && (
+                <TouchableOpacity
+                  style={styles.callBtn}
+                  onPress={() => Linking.openURL(`tel:${d.phone}`)}
+                >
+                  <Text style={styles.callBtnText}>📞 Call</Text>
+                </TouchableOpacity>
+              )}
+              {d.latitude !== null && d.longitude !== null && (
+                <TouchableOpacity
+                  style={styles.dirBtn}
+                  onPress={() => openGoogleMaps(d.latitude!, d.longitude!, d.name)}
+                >
+                  <Text style={styles.dirBtnText}>🗺️ Directions</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        ))
+      )}
     </ScrollView>
   );
 }
@@ -135,25 +119,23 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 32 },
   title: { fontSize: 21, fontWeight: '800', color: COLORS.text },
   subtitle: { fontSize: 13, color: COLORS.textLight, marginTop: 4, marginBottom: 12 },
-  controls: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  controls: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   locateBtn: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: 20,
   },
-  locateBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 12 },
-  filterPill: {
+  locateBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 13 },
+  refreshBtn: {
     backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: 20,
   },
-  filterPillActive: { backgroundColor: COLORS.primaryLight, borderColor: COLORS.primary },
-  filterText: { color: COLORS.text, fontWeight: '600', fontSize: 12 },
-  filterTextActive: { color: COLORS.primaryDark },
+  refreshBtnText: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
@@ -161,6 +143,14 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  emptyText: { fontSize: 13, color: COLORS.textLight, lineHeight: 19 },
   card: {
     backgroundColor: COLORS.white,
     borderRadius: 14,
@@ -172,8 +162,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text },
-  cardMeta: { fontSize: 13, color: COLORS.textLight, marginTop: 3 },
-  cardStock: { fontSize: 13, color: COLORS.text, fontWeight: '600', marginTop: 6 },
   cardActions: { flexDirection: 'row', gap: 10, marginTop: 10 },
   callBtn: {
     backgroundColor: COLORS.primary,

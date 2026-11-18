@@ -1,5 +1,4 @@
 import { supabase } from '../config/supabase';
-import { DIRECTORY_DONORS } from '../data/facilities';
 import { DonorRecord } from '../utils/bloodCompatibility';
 
 export interface DonationInput {
@@ -93,33 +92,28 @@ export async function submitBloodRequest(input: BloodRequestInput): Promise<stri
 }
 
 export async function fetchAllDonors(): Promise<DonorRecord[]> {
-  const supabaseDonors: DonorRecord[] = [];
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('blood_donations')
-        .select('id, name, phone, email, blood_type, latitude, longitude, available');
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('blood_donations')
+      .select('id, name, phone, email, blood_type, latitude, longitude, available');
 
-      if (!error && data) {
-        for (const d of data) {
-          supabaseDonors.push({
-            id: d.id,
-            name: d.name ?? 'Anonymous Donor',
-            phone: d.phone ?? '',
-            email: d.email ?? '',
-            blood_type: String(d.blood_type ?? '').toUpperCase(),
-            latitude: typeof d.latitude === 'number' ? d.latitude : null,
-            longitude: typeof d.longitude === 'number' ? d.longitude : null,
-            source: 'firestore',
-            available: d.available !== false,
-          });
-        }
-      }
-    } catch (err) {
-      console.warn('Could not load Supabase donors:', err);
-    }
+    if (error || !data) return [];
+    return data.map((d) => ({
+      id: d.id,
+      name: d.name ?? 'Donor',
+      phone: d.phone ?? '',
+      email: d.email ?? '',
+      blood_type: String(d.blood_type ?? '').toUpperCase(),
+      latitude: typeof d.latitude === 'number' ? d.latitude : null,
+      longitude: typeof d.longitude === 'number' ? d.longitude : null,
+      source: 'firestore',
+      available: d.available !== false,
+    }));
+  } catch (err) {
+    console.warn('Could not load Supabase donors:', err);
+    return [];
   }
-  return [...supabaseDonors, ...DIRECTORY_DONORS];
 }
 
 export async function fetchUserActivity(userId: string): Promise<{

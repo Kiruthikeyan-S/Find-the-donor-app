@@ -1,31 +1,24 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { MedicalFacility } from '../data/facilities';
 import { COLORS } from '../theme';
 import { DonorRecord } from '../utils/bloodCompatibility';
 
 interface DonorMapProps {
   donors: DonorRecord[];
-  facilities: MedicalFacility[];
-  filter: 'all' | 'donor' | 'bank' | 'hospital';
   userCoords: { latitude: number; longitude: number } | null;
 }
 
-export function DonorMap({ donors, facilities, filter }: DonorMapProps) {
-  const donorCount =
-    filter === 'all' || filter === 'donor'
-      ? donors.filter((d) => d.latitude !== null && d.longitude !== null).length
-      : 0;
-  const facCount = facilities.filter(
-    (f) => filter === 'all' || f.type === filter
+export function DonorMap({ donors }: DonorMapProps) {
+  const donorCount = donors.filter(
+    (d) => d.latitude !== null && d.longitude !== null
   ).length;
 
   return (
     <View style={styles.webFallback}>
-      <Text style={styles.title}>🗺️ Interactive Map (Mobile Native View)</Text>
+      <Text style={styles.title}>🗺️ Live Donor Map</Text>
       <Text style={styles.sub}>
-        Showing {donorCount} geolocated donors and {facCount} medical centers
-        below. Open on Android/iOS Expo Go for the full native map view.
+        {donorCount} registered donor{donorCount === 1 ? '' : 's'} with GPS
+        location. Open on Android or iOS Expo Go for the interactive map view.
       </Text>
     </View>
   );

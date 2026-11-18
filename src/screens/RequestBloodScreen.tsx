@@ -155,7 +155,7 @@ export function RequestBloodScreen() {
             style={styles.input}
             value={phone}
             onChangeText={setPhone}
-            placeholder="+91 98765 43210"
+            placeholder="Enter phone number"
             placeholderTextColor={COLORS.textLight}
             keyboardType="phone-pad"
           />

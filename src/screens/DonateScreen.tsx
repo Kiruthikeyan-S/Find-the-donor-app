@@ -22,8 +22,8 @@ export function DonateScreen() {
   const { user, profile } = useAuth();
   const [name, setName] = useState(profile?.username ?? '');
   const [gender, setGender] = useState<string>('Male');
-  const [age, setAge] = useState('24');
-  const [weight, setWeight] = useState('65');
+  const [age, setAge] = useState('');
+  const [weight, setWeight] = useState('');
   const [email, setEmail] = useState(profile?.email ?? user?.email ?? '');
   const [phone, setPhone] = useState('');
   const [bloodType, setBloodType] = useState('O+');
@@ -180,7 +180,7 @@ export function DonateScreen() {
             style={styles.input}
             value={phone}
             onChangeText={setPhone}
-            placeholder="+91 98765 43210"
+            placeholder="Enter phone number"
             placeholderTextColor={COLORS.textLight}
             keyboardType="phone-pad"
           />
