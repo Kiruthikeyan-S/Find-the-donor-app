@@ -4,11 +4,12 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { AboutScreen } from './src/screens/AboutScreen';
 import { AdminScreen } from './src/screens/AdminScreen';
 import { DonateScreen } from './src/screens/DonateScreen';
+import { ForgotPasswordScreen } from './src/screens/ForgotPasswordScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { MapScreen } from './src/screens/MapScreen';
@@ -25,23 +26,55 @@ function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerStyle: { backgroundColor: COLORS.white },
-        headerTitleStyle: { fontWeight: '800', color: COLORS.primary },
+        lazy: false,
+        headerStyle: {
+          backgroundColor: COLORS.white,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: COLORS.border,
+        },
+        headerTitleStyle: {
+          fontWeight: '800',
+          fontSize: 19,
+          color: COLORS.primary,
+        },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textLight,
-        tabBarIcon: ({ color, size }) => {
-          const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-            Home: 'home',
-            Donate: 'water',
-            Request: 'alert-circle',
-            Map: 'map',
-            Profile: 'person',
+        tabBarStyle: {
+          backgroundColor: COLORS.white,
+          borderTopWidth: 1,
+          borderTopColor: COLORS.border,
+          height: Platform.OS === 'ios' ? 84 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          paddingTop: 8,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+        },
+        tabBarIcon: ({ focused, color, size }) => {
+          const icons: Record<
+            string,
+            { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }
+          > = {
+            Home: { active: 'home', inactive: 'home-outline' },
+            Donate: { active: 'water', inactive: 'water-outline' },
+            Request: { active: 'alert-circle', inactive: 'alert-circle-outline' },
+            Map: { active: 'map', inactive: 'map-outline' },
+            Profile: { active: 'person', inactive: 'person-outline' },
           };
-          return <Ionicons name={icons[route.name] ?? 'ellipse'} size={size} color={color} />;
+          const pair = icons[route.name] ?? { active: 'ellipse', inactive: 'ellipse-outline' };
+          return <Ionicons name={focused ? pair.active : pair.inactive} size={size} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Red Line' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Find the Donor' }} />
       <Tab.Screen name="Donate" component={DonateScreen} options={{ title: 'Donate' }} />
       <Tab.Screen name="Request" component={RequestBloodScreen} options={{ title: 'Request' }} />
       <Tab.Screen name="Map" component={MapScreen} options={{ title: 'Live Map' }} />
@@ -65,6 +98,9 @@ function RootNavigator() {
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
+          animation: 'slide_from_right',
+          animationDuration: 200,
+          headerShadowVisible: false,
           headerStyle: { backgroundColor: COLORS.white },
           headerTintColor: COLORS.primary,
           headerTitleStyle: { fontWeight: '700' },
@@ -100,7 +136,12 @@ function RootNavigator() {
             <Stack.Screen
               name="Signup"
               component={SignupScreen}
-              options={{ title: 'Sign Up' }}
+              options={{ title: 'Create Account' }}
+            />
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+              options={{ title: 'Forgot Password' }}
             />
           </>
         ) : (
@@ -114,6 +155,11 @@ function RootNavigator() {
               name="Signup"
               component={SignupScreen}
               options={{ title: 'Create Account' }}
+            />
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+              options={{ title: 'Forgot Password' }}
             />
           </>
         )}

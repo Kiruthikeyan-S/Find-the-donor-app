@@ -1,5 +1,5 @@
--- Red Line Blood Donation App - Supabase Postgres Schema & RLS Policies
--- Run this in your Supabase Dashboard -> SQL Editor
+-- Find the Donor App - Supabase Postgres Schema & RLS Policies
+-- Run this entire script in Supabase Dashboard -> SQL Editor
 
 -- 1. Profiles table (linked to auth.users)
 create table if not exists public.profiles (
@@ -12,14 +12,17 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "Users can view their own profile" on public.profiles;
 create policy "Users can view their own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
+drop policy if exists "Users can insert their own client profile" on public.profiles;
 create policy "Users can insert their own client profile"
   on public.profiles for insert
   with check (auth.uid() = id and role = 'client');
 
+drop policy if exists "Users can update their own profile without changing role" on public.profiles;
 create policy "Users can update their own profile without changing role"
   on public.profiles for update
   using (auth.uid() = id)
@@ -45,22 +48,26 @@ create table if not exists public.blood_donations (
 
 alter table public.blood_donations enable row level security;
 
+drop policy if exists "Authenticated users can read donors" on public.blood_donations;
 create policy "Authenticated users can read donors"
   on public.blood_donations for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can insert their own donor registration" on public.blood_donations;
 create policy "Users can insert their own donor registration"
   on public.blood_donations for insert
   to authenticated
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update their own donor registration" on public.blood_donations;
 create policy "Users can update their own donor registration"
   on public.blood_donations for update
   to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can delete their own donor registration" on public.blood_donations;
 create policy "Users can delete their own donor registration"
   on public.blood_donations for delete
   to authenticated
@@ -85,6 +92,7 @@ create table if not exists public.blood_requests (
 
 alter table public.blood_requests enable row level security;
 
+drop policy if exists "Users can view their own requests or admins can view all" on public.blood_requests;
 create policy "Users can view their own requests or admins can view all"
   on public.blood_requests for select
   to authenticated
@@ -95,11 +103,13 @@ create policy "Users can view their own requests or admins can view all"
     )
   );
 
+drop policy if exists "Users can create their own blood request" on public.blood_requests;
 create policy "Users can create their own blood request"
   on public.blood_requests for insert
   to authenticated
   with check (auth.uid() = user_id and status = 'open');
 
+drop policy if exists "Owners or admins can update blood requests" on public.blood_requests;
 create policy "Owners or admins can update blood requests"
   on public.blood_requests for update
   to authenticated
